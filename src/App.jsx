@@ -1,10 +1,12 @@
-import { useState } from "react";
-import "./App.css";
+import React from "react";
+import QuerySelector from "./components/QuerySelector";
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  return <div>"Welcome to semantic web ontology frontend"</div>;
+  return (
+    <div className="App">
+      <QuerySelector />
+    </div>
+  );
 }
 
 export default App;
