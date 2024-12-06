@@ -130,10 +130,16 @@ const queries = [
             GROUP BY ?normalizedPremiseType
             ORDER BY ?normalizedPremiseType`,
   },
+  //   {
+  //     label: "Custom Query",
+  //     value: "CustomQuery",
+  //     query: "",
+  //   },
 ];
 
 const QuerySelector = () => {
   const [selectedQuery, setSelectedQuery] = useState("");
+  const [queryText, setQueryText] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -143,14 +149,27 @@ const QuerySelector = () => {
   const [fetchClicked, setFetchClicked] = useState(false);
 
   const handleQueryChange = (event) => {
-    setSelectedQuery(event.target.value);
+    const selectedValue = event.target.value;
+    const selectedQueryObject = queries.find(
+      (query) => query.value === selectedValue
+    );
+
+    setSelectedQuery(selectedValue);
+    setQueryText(selectedQueryObject?.query || ""); // Set textarea to the query or empty if Custom Query
     setPage(1);
     setData(null);
     setFetchClicked(false);
   };
 
+  const handleQueryEdit = (event) => {
+    setQueryText(event.target.value);
+  };
+
   const fetchData = async () => {
-    if (!selectedQuery) return;
+    if (!queryText.trim()) {
+      setError("Query cannot be empty.");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -158,16 +177,10 @@ const QuerySelector = () => {
     setData(null);
 
     try {
-      const selectedQueryObject = queries.find(
-        (query) => query.value === selectedQuery
-      );
-
-      setData(null);
-
       const response = await axios.post(
-        `http://localhost:3000/api/v1/semantic-web-crime-ontology?page=${page}&pageSize=${pageSize}`,
+        `http://localhost:3000/api/v1/semantic-NYC-LA-Crime-Data?page=${page}&pageSize=${pageSize}`,
         {
-          query: selectedQueryObject.query,
+          query: queryText, // Use the edited query
         }
       );
 
@@ -177,7 +190,6 @@ const QuerySelector = () => {
       });
 
       setData(formattedData);
-
       setTotalPages(response.data.data.pagination.totalPages);
     } catch (err) {
       setError("Error fetching data.");
@@ -232,22 +244,32 @@ const QuerySelector = () => {
             </option>
           ))}
         </select>
-
-        <button
-          onClick={fetchData}
-          disabled={loading || !selectedQuery}
-          className="w-full sm:w-auto bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
-        >
-          {loading ? (
-            <span className="flex justify-center items-center">
-              <div className="w-5 h-5 border-4 border-t-transparent border-blue-500 rounded-full animate-spin" />
-              <span className="ml-2">Loading...</span>
-            </span>
-          ) : (
-            "Fetch Data"
-          )}
-        </button>
       </div>
+
+      <div className="mb-4">
+        <textarea
+          value={queryText}
+          onChange={handleQueryEdit}
+          rows={8}
+          placeholder="Enter or edit your SPARQL query here..."
+          className="w-full border border-gray-300 rounded-lg p-3"
+        />
+      </div>
+
+      <button
+        onClick={fetchData}
+        disabled={loading}
+        className="w-full sm:w-auto bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+      >
+        {loading ? (
+          <span className="flex justify-center items-center">
+            <div className="w-5 h-5 border-4 border-t-transparent border-blue-500 rounded-full animate-spin" />
+            <span className="ml-2">Loading...</span>
+          </span>
+        ) : (
+          "Fetch Data"
+        )}
+      </button>
 
       {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
 
@@ -279,15 +301,15 @@ const QuerySelector = () => {
 
           <button
             onClick={() => handlePageChange(page + 1)}
-            disabled={loading || page === totalPages} // Disable if current page is the last page
-            className={`bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400`}
+            disabled={loading || page === totalPages}
+            className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
           >
             Next
           </button>
         </div>
       )}
 
-      {data ? (
+      {data && (
         <div className="mt-6 overflow-x-auto">
           <table className="min-w-full table-auto border-collapse">
             <thead>
@@ -315,7 +337,7 @@ const QuerySelector = () => {
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
     </div>
   );
 };
